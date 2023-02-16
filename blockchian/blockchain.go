@@ -9,7 +9,7 @@ import (
 type Block struct {
 	Data     string
 	Hash     string
-	prevHash string
+	PrevHash string
 }
 
 type blockchain struct {
@@ -28,7 +28,7 @@ func getLastHash() string {
 }
 
 func (b *Block) calculateHash() {
-	hash := sha256.Sum256([]byte(b.Data + b.prevHash))
+	hash := sha256.Sum256([]byte(b.Data + b.PrevHash))
 	b.Hash = fmt.Sprintf("%x", hash)
 }
 
