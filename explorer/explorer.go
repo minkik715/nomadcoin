@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	port        string = ":4000"
 	templateDir string = "explorer/templates/"
 )
 
@@ -39,13 +38,13 @@ func add(rw http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(rw, "add", nil)
 }
 
-func Start() {
+func Start(port int) {
+	handler := http.NewServeMux()
 	templates = template.Must(template.ParseGlob(templateDir + "pages/*.gohtml"))
 	templates = template.Must(templates.ParseGlob(templateDir + "partials/*.gohtml"))
-	http.HandleFunc("/", home)
-	http.HandleFunc("/add", add)
-	fmt.Printf("Listening on http://localhost%s\n", port)
+	handler.HandleFunc("/", home)
+	handler.HandleFunc("/add", add)
+	fmt.Printf("Listening on http://localhost%d\n", port)
 	blockchian.GetBlockchain().AppendBlock("NICO!!!!!!")
-
-	log.Fatal(http.ListenAndServe(port, nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("%d", port), handler))
 }
