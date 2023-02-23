@@ -2,14 +2,16 @@ package blockchian
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"sync"
 )
 
 type Block struct {
-	Data     string
-	Hash     string
-	PrevHash string
+	Data     string `json:"data"`
+	Hash     string `json:"hash"`
+	PrevHash string `json:"prevHash,omitempty"`
+	Height   int    `json:"height"`
 }
 
 type blockchain struct {
@@ -33,7 +35,7 @@ func (b *Block) calculateHash() {
 }
 
 func createBlock(data string) *Block {
-	newBlock := Block{data, "", getLastHash()}
+	newBlock := Block{data, "", getLastHash(), len(GetBlockchain().blocks) + 1}
 	newBlock.calculateHash()
 	return &newBlock
 }
@@ -57,4 +59,13 @@ func GetBlockchain() *blockchain {
 
 func (b *blockchain) AllBLocks() []*Block {
 	return b.blocks
+}
+
+var ErrNotFound = errors.New("Block Not Found")
+
+func (b *blockchain) GetBlock(height int) (*Block, error) {
+	if height > len(b.AllBLocks()) {
+		return nil, ErrNotFound
+	}
+	return b.blocks[height-1], nil
 }
