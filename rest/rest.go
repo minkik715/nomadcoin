@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/rlaalsrl715/nomadcoin/blockchian"
+	"github.com/rlaalsrl715/nomadcoin/blockchain"
 	"github.com/rlaalsrl715/nomadcoin/utils"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 var port string
@@ -49,7 +48,7 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Payload:     "data:string",
 		},
 		{
-			URL:         url("/blocks/{height}"),
+			URL:         url("/blocks/{hash}"),
 			Method:      "GET",
 			Description: "See A Block",
 		},
@@ -60,23 +59,23 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 func blocks(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		utils.HandleErr(json.NewEncoder(rw).Encode(blockchian.GetBlockchain().AllBLocks()))
+		utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.Blockchain().Blocks()))
 
 	case "POST":
+		return
 		var addBlockBody addBlockBody
 		utils.HandleErr(json.NewDecoder(r.Body).Decode(&addBlockBody))
-		blockchian.GetBlockchain().AppendBlock(addBlockBody.Message)
+		blockchain.Blockchain().AddBlock(addBlockBody.Message)
 		rw.WriteHeader(http.StatusCreated)
 	}
 }
 
 func block(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	height, err := strconv.Atoi(vars["height"])
-	utils.HandleErr(err)
-	block, err := blockchian.GetBlockchain().GetBlock(height)
+	hash := vars["hash"]
+	block, err := blockchain.FindBlock(hash)
 	encoder := json.NewEncoder(rw)
-	if err == blockchian.ErrNotFound {
+	if err == blockchain.ErrNotFound {
 		encoder.Encode(errorResponse{fmt.Sprint(err)})
 	} else {
 		encoder.Encode(block)
@@ -97,7 +96,7 @@ func Start(aPort int) {
 	port = fmt.Sprintf(":%d", aPort)
 	router.HandleFunc("/", documentation).Methods("GET")
 	router.HandleFunc("/blocks", blocks).Methods("GET", "POST")
-	router.HandleFunc("/blocks/{height:[0-9]+}", block).Methods("GET")
+	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block).Methods("GET")
 	fmt.Printf("LIstening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
 }

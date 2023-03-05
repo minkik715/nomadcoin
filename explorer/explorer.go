@@ -2,7 +2,7 @@ package explorer
 
 import (
 	"fmt"
-	"github.com/rlaalsrl715/nomadcoin/blockchian"
+	"github.com/rlaalsrl715/nomadcoin/blockchain"
 	"html/template"
 	"log"
 	"net/http"
@@ -16,11 +16,11 @@ var templates *template.Template
 
 type homeData struct {
 	PageTitle string
-	Blocks    []*blockchian.Block
+	Blocks    []*blockchain.Block
 }
 
 func home(rw http.ResponseWriter, r *http.Request) {
-	data := homeData{"Home", blockchian.GetBlockchain().AllBLocks()}
+	data := homeData{"Home", nil}
 	templates.ExecuteTemplate(rw, "home", data)
 }
 
@@ -31,7 +31,7 @@ func add(rw http.ResponseWriter, r *http.Request) {
 	case "POST":
 		r.ParseForm()
 		data := r.Form.Get("blockData")
-		blockchian.GetBlockchain().AppendBlock(data)
+		blockchain.Blockchain().AddBlock(data)
 		http.Redirect(rw, r, "/", http.StatusPermanentRedirect)
 
 	}
@@ -45,6 +45,6 @@ func Start(port int) {
 	handler.HandleFunc("/", home)
 	handler.HandleFunc("/add", add)
 	fmt.Printf("Listening on http://localhost%d\n", port)
-	blockchian.GetBlockchain().AppendBlock("NICO!!!!!!")
+	blockchain.Blockchain().AddBlock("NICO!!!!!!")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("%d", port), handler))
 }

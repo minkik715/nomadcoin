@@ -6,6 +6,7 @@ import (
 	"github.com/rlaalsrl715/nomadcoin/explorer"
 	"github.com/rlaalsrl715/nomadcoin/rest"
 	"os"
+	"runtime"
 )
 
 func Start() {
@@ -32,5 +33,5 @@ func usage() {
 	fmt.Printf("Please use the follwing flags\n\n")
 	fmt.Printf("-port=4000:  Set the PORT of the server\n")
 	fmt.Printf("-mode:  Choose between 'html' and 'rest'(recommended rest)\n")
-	os.Exit(0)
+	runtime.Goexit()
 }
