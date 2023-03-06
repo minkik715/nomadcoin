@@ -26,7 +26,7 @@ func (b *blockchain) AddBlock(data string) {
 }
 
 func (b *blockchain) persist() {
-	db.SaveBlockChain(utils.ToBytes(b))
+	db.SaveCheckPoint(utils.ToBytes(b))
 }
 
 func Blockchain() *blockchain {
