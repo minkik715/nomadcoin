@@ -29,9 +29,7 @@ func add(rw http.ResponseWriter, r *http.Request) {
 	case "GET":
 		templates.ExecuteTemplate(rw, "add", nil)
 	case "POST":
-		r.ParseForm()
-		data := r.Form.Get("blockData")
-		blockchain.Blockchain().AddBlock(data)
+		blockchain.Blockchain().AddBlock()
 		http.Redirect(rw, r, "/", http.StatusPermanentRedirect)
 
 	}
@@ -45,6 +43,5 @@ func Start(port int) {
 	handler.HandleFunc("/", home)
 	handler.HandleFunc("/add", add)
 	fmt.Printf("Listening on http://localhost%d\n", port)
-	blockchain.Blockchain().AddBlock("NICO!!!!!!")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("%d", port), handler))
 }
