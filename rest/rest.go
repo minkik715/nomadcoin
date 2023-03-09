@@ -31,6 +31,11 @@ type balanceResponse struct {
 	Balance int    `json:"balance"`
 }
 
+type addTxPayload struct {
+	To     string `json:"to"`
+	Amount int    `json:"amount"`
+}
+
 func (u url) MarshalText() ([]byte, error) {
 	return []byte(fmt.Sprintf("http://localhost%s%s", port, u)), nil
 }
@@ -109,6 +114,22 @@ func balance(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func mempool(rw http.ResponseWriter, r *http.Request) {
+	utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.Mempool))
+}
+
+func transactions(rw http.ResponseWriter, r *http.Request) {
+	var payload addTxPayload
+	utils.HandleErr(json.NewDecoder(r.Body).Decode(&payload))
+	err := blockchain.Mempool.AddTx(payload.To, payload.Amount)
+	if err != nil {
+		json.NewEncoder(rw).Encode(errorResponse{err.Error()})
+		rw.WriteHeader(http.StatusBadRequest)
+	} else {
+		rw.WriteHeader(http.StatusCreated)
+	}
+}
+
 func jsonContentTypeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Add("Content-Type", "application/json")
@@ -126,6 +147,8 @@ func Start(aPort int) {
 	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block).Methods("GET")
 	router.HandleFunc("/balance/{address}", balance).Methods("GET")
 	router.HandleFunc("/status", status).Methods("GET")
+	router.HandleFunc("/mempool", mempool).Methods("GET")
+	router.HandleFunc("/transactions", transactions).Methods("POST")
 	fmt.Printf("LIstening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
 }
