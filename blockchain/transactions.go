@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"errors"
 	"github.com/rlaalsrl715/nomadcoin/utils"
 	"time"
 )
@@ -61,7 +62,30 @@ func makeCoinBaseTx(address string) *Tx {
 }
 
 func makeTx(from string, to string, amount int) (*Tx, error) {
+	balance := Blockchain().BalanceByAddress(from)
+	if balance < amount {
+		return nil, errors.New("no money ")
+	}
+	uTxOuts := Blockchain().UTxOutsByAddress(from)
 
+	var total int
+	var txOuts []*TxOut
+	var txIns []*TxIn
+	for _, uTxOut := range uTxOuts {
+		if total >= amount {
+			break
+		}
+		total += uTxOut.Amount
+		txIns = append(txIns, &TxIn{uTxOut.TxID, uTxOut.Index, from})
+	}
+	if change := total - amount; change != 0 {
+		txOuts = append(txOuts, &TxOut{from, change})
+	}
+	txOuts = append(txOuts, &TxOut{to, amount})
+
+	tx := &Tx{TxOuts: txOuts, TxIns: txIns, Timestamp: int(time.Now().Unix())}
+	tx.getId()
+	return tx, nil
 }
 
 func (m *mempool) AddTx(to string, amount int) error {
@@ -79,4 +103,17 @@ func (m *mempool) txToConfirm() []*Tx {
 	txs = append(txs, coinbase)
 	m.Txs = nil
 	return txs
+}
+
+func isOnMempool(uTxOut *UTxOut) bool {
+	exists := false
+	for _, tx := range Mempool.Txs {
+		for _, input := range tx.TxIns {
+			if input.TxID == uTxOut.TxID && input.Index == uTxOut.Index {
+				exists = true
+			}
+		}
+	}
+	return exists
+
 }

@@ -50,7 +50,6 @@ func Blockchain() *blockchain {
 				b.restore(checkPoint)
 			}
 		})
-		println(b.NewestHash)
 	}
 	return b
 }
@@ -103,7 +102,7 @@ func (b *blockchain) recalculateDifficulty() int {
 	return b.CurrentDifficulty
 }
 
-func (b *blockchain) UTxOutsByAddress(address string) []*TxOut {
+func (b *blockchain) UTxOutsByAddress(address string) []*UTxOut {
 	var uTxOuts []*UTxOut
 	creatorTxs := make(map[string]bool)
 	for _, block := range b.Blocks() {
@@ -116,7 +115,10 @@ func (b *blockchain) UTxOutsByAddress(address string) []*TxOut {
 			for index, output := range tx.TxOuts {
 				if output.Owner == address {
 					if _, ok := creatorTxs[tx.Id]; !ok {
-						uTxOuts = append(uTxOuts, &UTxOut{tx.Id, index, output.Amount})
+						uTxOut := &UTxOut{tx.Id, index, output.Amount}
+						if !isOnMempool(uTxOut) {
+							uTxOuts = append(uTxOuts, uTxOut)
+						}
 					}
 				}
 			}
