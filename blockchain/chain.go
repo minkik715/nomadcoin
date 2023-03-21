@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"fmt"
 	"github.com/rlaalsrl715/nomadcoin/db"
 	"github.com/rlaalsrl715/nomadcoin/utils"
 	"sync"
@@ -31,30 +30,15 @@ func (b *blockchain) AddBlock() {
 	block := createBLock(b.NewestHash, b.Height+1)
 	b.NewestHash = block.Hash
 	b.Height = block.Height
-	b.CurrentDifficulty = b.Difficulty()
-	b.persist()
+	b.CurrentDifficulty = Difficulty(b)
+	persistBlockchain(b)
 }
 
-func (b *blockchain) persist() {
+func persistBlockchain(b *blockchain) {
 	db.SaveCheckPoint(utils.ToBytes(b))
 }
 
-func Blockchain() *blockchain {
-	if b == nil {
-		once.Do(func() {
-			b = &blockchain{Height: 0, CurrentDifficulty: defaultDifficulty}
-			checkPoint := db.Blockchain()
-			if checkPoint == nil {
-				b.AddBlock()
-			} else {
-				b.restore(checkPoint)
-			}
-		})
-	}
-	return b
-}
-
-func (b *blockchain) Blocks() []*Block {
+func Blocks(b *blockchain) []*Block {
 	var blocks []*Block
 	hashCursor := b.NewestHash
 	for {
@@ -69,43 +53,34 @@ func (b *blockchain) Blocks() []*Block {
 	return blocks
 }
 
-func (b *blockchain) Difficulty() int {
+func Difficulty(b *blockchain) int {
 	if b.Height == 0 {
 		return defaultDifficulty
 	} else if b.Height%difficultyInterval == 0 {
-		return b.recalculateDifficulty()
+		return recalculateDifficulty(b)
 	} else {
 		return b.CurrentDifficulty
 	}
 }
 
-func (b *blockchain) recalculateDifficulty() int {
-	allBocks := b.Blocks()
+func recalculateDifficulty(b *blockchain) int {
+	allBocks := Blocks(b)
 	newestBlock := allBocks[0]
 	lastRecalculatedBlock := allBocks[difficultyInterval-1]
 	actualTime := (newestBlock.TimesStamp / 60) - (lastRecalculatedBlock.TimesStamp / 60)
 	expectedTime := difficultyInterval * blockInterval
-
 	if actualTime <= (expectedTime - allowedRange) {
-		fmt.Println(actualTime)
-		fmt.Println(expectedTime)
-		fmt.Println("UP")
-
 		return b.CurrentDifficulty + 1
 	} else if actualTime >= (expectedTime + allowedRange) {
-		fmt.Println(actualTime)
-		fmt.Println(expectedTime)
-		fmt.Println("DOWN")
-
 		return b.CurrentDifficulty - 1
 	}
 	return b.CurrentDifficulty
 }
 
-func (b *blockchain) UTxOutsByAddress(address string) []*UTxOut {
+func UTxOutsByAddress(address string, b *blockchain) []*UTxOut {
 	var uTxOuts []*UTxOut
 	creatorTxs := make(map[string]bool)
-	for _, block := range b.Blocks() {
+	for _, block := range Blocks(b) {
 		for _, tx := range block.Transactions {
 			for _, input := range tx.TxIns {
 				if input.Owner == address {
@@ -127,11 +102,26 @@ func (b *blockchain) UTxOutsByAddress(address string) []*UTxOut {
 	return uTxOuts
 }
 
-func (b *blockchain) BalanceByAddress(address string) int {
-	txOuts := b.UTxOutsByAddress(address)
+func BalanceByAddress(address string, b *blockchain) int {
+	txOuts := UTxOutsByAddress(address, b)
 	var amount int
 	for _, txOUt := range txOuts {
 		amount += txOUt.Amount
 	}
 	return amount
+}
+
+func Blockchain() *blockchain {
+	if b == nil {
+		once.Do(func() {
+			b = &blockchain{Height: 0, CurrentDifficulty: defaultDifficulty}
+			checkPoint := db.Blockchain()
+			if checkPoint == nil {
+				b.AddBlock()
+			} else {
+				b.restore(checkPoint)
+			}
+		})
+	}
+	return b
 }
