@@ -27,7 +27,7 @@ func (b *blockchain) restore(data []byte) {
 }
 
 func (b *blockchain) AddBlock() {
-	block := createBLock(b.NewestHash, b.Height+1)
+	block := createBLock(b.NewestHash, b.Height+1, Difficulty(b))
 	b.NewestHash = block.Hash
 	b.Height = block.Height
 	b.CurrentDifficulty = Difficulty(b)
@@ -112,16 +112,14 @@ func BalanceByAddress(address string, b *blockchain) int {
 }
 
 func Blockchain() *blockchain {
-	if b == nil {
-		once.Do(func() {
-			b = &blockchain{Height: 0, CurrentDifficulty: defaultDifficulty}
-			checkPoint := db.Blockchain()
-			if checkPoint == nil {
-				b.AddBlock()
-			} else {
-				b.restore(checkPoint)
-			}
-		})
-	}
+	once.Do(func() {
+		b = &blockchain{Height: 0, CurrentDifficulty: defaultDifficulty}
+		checkPoint := db.Blockchain()
+		if checkPoint == nil {
+			b.AddBlock()
+		} else {
+			b.restore(checkPoint)
+		}
+	})
 	return b
 }
