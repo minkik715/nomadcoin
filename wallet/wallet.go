@@ -2,22 +2,26 @@ package wallet
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"encoding/hex"
-	"github.com/rlaalsrl715/nomadcoin/utils"
+	"os"
 )
 
-func Start() {
-	message := "fuck github"
-	hashMessage := utils.Hash(message)
+type wallet struct {
+	privateKey *ecdsa.PrivateKey
+}
 
-	hashByteMessage, err := hex.DecodeString(hashMessage)
-	utils.HandleErr(err)
+var w *wallet
 
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	utils.HandleErr(err)
+func hasWalletFile() bool {
+	_, err := os.Stat("nico-coin.wallet")
+	return !os.IsNotExist(err)
+}
 
-	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hashByteMessage)
-	utils.HandleErr(err)
+func Wallet() *wallet {
+	if w == nil {
+		if hasWalletFile() {
+
+		} else {
+
+		}
+	}
 }
