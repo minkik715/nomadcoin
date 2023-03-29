@@ -3,6 +3,7 @@ package blockchain
 import (
 	"errors"
 	"github.com/rlaalsrl715/nomadcoin/utils"
+	"github.com/rlaalsrl715/nomadcoin/wallet"
 	"time"
 )
 
@@ -89,7 +90,7 @@ func makeTx(from string, to string, amount int) (*Tx, error) {
 }
 
 func (m *mempool) AddTx(to string, amount int) error {
-	tx, err := makeTx("minki", to, amount)
+	tx, err := makeTx(wallet.Wallet().Address, to, amount)
 	if err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func (m *mempool) AddTx(to string, amount int) error {
 }
 
 func (m *mempool) txToConfirm() []*Tx {
-	coinbase := makeCoinBaseTx("minki")
+	coinbase := makeCoinBaseTx(wallet.Wallet().Address)
 	txs := m.Txs
 	txs = append(txs, coinbase)
 	m.Txs = nil
