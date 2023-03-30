@@ -50,21 +50,24 @@ func restoreKey() (key *ecdsa.PrivateKey) {
 }
 
 func aFromKey(key *ecdsa.PrivateKey) string {
-	bytes := append(key.X.Bytes(), key.Y.Bytes()...)
-	address := fmt.Sprintf("%x", bytes)
-	return address
+	return encodingBytes(key.X.Bytes(), key.Y.Bytes())
 }
 
-func sign(payload string, w *wallet) string {
+func encodingBytes(a, b []byte) string {
+	bytes := append(a, b...)
+	payload := fmt.Sprintf("%x", bytes)
+	return payload
+}
+
+func Sign(payload string, w *wallet) string {
 	bytes, err := hex.DecodeString(payload)
 	utils.HandleErr(err)
 	r, s, err := ecdsa.Sign(rand.Reader, w.privateKey, bytes)
 	utils.HandleErr(err)
-	signatureB := append(r.Bytes(), s.Bytes()...)
-	return fmt.Sprintf("%x", signatureB)
+	return encodingBytes(r.Bytes(), s.Bytes())
 }
 
-func verify(signature string, hashMessage string, address string) bool {
+func Verify(signature string, hashMessage string, address string) bool {
 	r, s, err := restoreBigInts(signature)
 	utils.HandleErr(err)
 	x, y, err := restoreBigInts(address)

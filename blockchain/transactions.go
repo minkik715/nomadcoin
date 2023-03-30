@@ -25,14 +25,14 @@ type Tx struct {
 }
 
 type TxIn struct {
-	TxID  string `json:"txID"`
-	Index int    `json:"index"`
-	Owner string `json:"owner"`
+	TxID      string `json:"txID"`
+	Index     int    `json:"index"`
+	Signature string `json:"signature"`
 }
 
 type TxOut struct {
-	Owner  string `json:"owner"`
-	Amount int    `json:"amount"`
+	Address string `json:"address"`
+	Amount  int    `json:"amount"`
 }
 
 type UTxOut struct {
@@ -86,7 +86,28 @@ func makeTx(from string, to string, amount int) (*Tx, error) {
 
 	tx := &Tx{TxOuts: txOuts, TxIns: txIns, Timestamp: int(time.Now().Unix())}
 	tx.getId()
+	sign(tx)
+	validate(tx, from)
 	return tx, nil
+}
+
+func sign(tx *Tx) {
+	for _, txIn := range tx.TxIns {
+		txIn.Signature = wallet.Sign(tx.Id, wallet.Wallet())
+	}
+}
+
+func validate(tx *Tx, address string) bool {
+	for _, txIn := range tx.TxIns {
+		prevTx := FindTx(txIn.TxID, Blockchain())
+		if prevTx == nil {
+			return false
+		}
+		if !wallet.Verify(txIn.Signature, tx.Id, address) {
+			return false
+		}
+	}
+	return true
 }
 
 func (m *mempool) AddTx(to string, amount int) error {
@@ -116,5 +137,22 @@ func isOnMempool(uTxOut *UTxOut) bool {
 		}
 	}
 	return false
+}
 
+func Txs(b *blockchain) []*Tx {
+	var txs []*Tx
+	for _, b := range Blocks(b) {
+		txs = append(txs, b.Transactions...)
+	}
+	return txs
+}
+
+func FindTx(txId string, b *blockchain) *Tx {
+	txs := Txs(b)
+	for _, tx := range txs {
+		if tx.Id == txId {
+			return tx
+		}
+	}
+	return nil
 }
