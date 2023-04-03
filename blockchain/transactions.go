@@ -87,7 +87,10 @@ func makeTx(from string, to string, amount int) (*Tx, error) {
 	tx := &Tx{TxOuts: txOuts, TxIns: txIns, Timestamp: int(time.Now().Unix())}
 	tx.getId()
 	sign(tx)
-	validate(tx, from)
+	valid := validate(tx)
+	if !valid {
+		return nil, errors.New("tx invaild")
+	}
 	return tx, nil
 }
 
@@ -97,17 +100,21 @@ func sign(tx *Tx) {
 	}
 }
 
-func validate(tx *Tx, address string) bool {
+func validate(tx *Tx) bool {
+	valid := true
 	for _, txIn := range tx.TxIns {
 		prevTx := FindTx(txIn.TxID, Blockchain())
 		if prevTx == nil {
-			return false
+			valid = false
+			break
 		}
-		if !wallet.Verify(txIn.Signature, tx.Id, address) {
-			return false
+		address := prevTx.TxOuts[txIn.Index].Address
+		valid = wallet.Verify(txIn.Signature, tx.Id, address)
+		if !valid {
+			break
 		}
 	}
-	return true
+	return valid
 }
 
 func (m *mempool) AddTx(to string, amount int) error {

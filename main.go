@@ -1,9 +1,12 @@
 package main
 
 import (
-	"github.com/rlaalsrl715/nomadcoin/wallet"
+	"github.com/rlaalsrl715/nomadcoin/db"
+	"github.com/rlaalsrl715/nomadcoin/rest"
 )
 
 func main() {
-	wallet.Wallet()
+	defer db.DB().Close()
+
+	rest.Start(3000)
 }
