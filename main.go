@@ -5,17 +5,24 @@ import (
 	"time"
 )
 
-func countToTen(name string) {
+func countToTen(c chan int) {
 	for i := range [10]int{} {
-		fmt.Printf("%s, -> %d \n", name, i)
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 5)
+		fmt.Printf("sending -> %d\n", i)
+		c <- i
 	}
 }
 
 func main() {
-	go countToTen("FIRST")
-	go countToTen("SECOND")
-	for {
+	c := make(chan int)
+	go countToTen(c)
 
+	for {
+		a := <-c
+		fmt.Printf("recieve -> %d\n", a)
+		if c == nil {
+			println("GO ROUTINE FINISH")
+		}
 	}
+
 }
