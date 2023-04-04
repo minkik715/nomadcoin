@@ -1,12 +1,21 @@
 package main
 
 import (
-	"github.com/rlaalsrl715/nomadcoin/db"
-	"github.com/rlaalsrl715/nomadcoin/rest"
+	"fmt"
+	"time"
 )
 
-func main() {
-	defer db.DB().Close()
+func countToTen(name string) {
+	for i := range [10]int{} {
+		fmt.Printf("%s, -> %d \n", name, i)
+		time.Sleep(time.Second * 1)
+	}
+}
 
-	rest.Start(3000)
+func main() {
+	go countToTen("FIRST")
+	go countToTen("SECOND")
+	for {
+
+	}
 }
