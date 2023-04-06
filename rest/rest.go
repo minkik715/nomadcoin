@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/rlaalsrl715/nomadcoin/blockchain"
+	"github.com/rlaalsrl715/nomadcoin/p2p"
 	"github.com/rlaalsrl715/nomadcoin/utils"
 	"github.com/rlaalsrl715/nomadcoin/wallet"
 	"log"
@@ -72,6 +73,11 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			URL:         url("/balance/{owner}"),
 			Method:      "GET",
 			Description: "Get TxOuts for an Address",
+		},
+		{
+			URL:         url("/ws"),
+			Method:      "GET",
+			Description: "Connect Web Socket",
 		},
 	}
 	json.NewEncoder(rw).Encode(data)
@@ -146,10 +152,17 @@ func jsonContentTypeMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func logURLMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL)
+		next.ServeHTTP(rw, r)
+	})
+}
+
 func Start(aPort int) {
 	//url과 url의 func을 매핑해주는 역할을한다. 근데 url이 겹치면 오류!
 	router := mux.NewRouter()
-	router.Use(jsonContentTypeMiddleware)
+	router.Use(jsonContentTypeMiddleware, logURLMiddleware)
 	port = fmt.Sprintf(":%d", aPort)
 	router.HandleFunc("/", documentation).Methods("GET")
 	router.HandleFunc("/blocks", blocks).Methods("GET", "POST")
@@ -159,6 +172,7 @@ func Start(aPort int) {
 	router.HandleFunc("/mempool", mempool).Methods("GET")
 	router.HandleFunc("/wallet", myWallet).Methods("GET")
 	router.HandleFunc("/transactions", transactions).Methods("POST")
+	router.HandleFunc("/ws", p2p.Upgrade).Methods("GET")
 	fmt.Printf("LIstening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
 }
