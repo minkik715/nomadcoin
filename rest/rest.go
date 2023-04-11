@@ -160,7 +160,7 @@ func peers(rw http.ResponseWriter, r *http.Request) {
 		{
 			var payload AddPeerPayload
 			json.NewDecoder(r.Body).Decode(&payload)
-			p2p.AddPeer(payload.Address, payload.Port)
+			p2p.AddPeer(payload.Address, payload.Port, port)
 			rw.WriteHeader(http.StatusOK)
 		}
 	}
