@@ -5,21 +5,31 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var Peer map[string]*peer = make(map[string]*peer)
+var Peers = make(map[string]*peer)
 
 type peer struct {
-	conn  *websocket.Conn
-	inbox chan []byte
+	key     string
+	address string
+	port    string
+	conn    *websocket.Conn
+	inbox   chan []byte
 }
 
 func initPeer(conn *websocket.Conn, address, port string) *peer {
-	p := peer{conn, make(chan []byte)}
 	key := fmt.Sprintf("%s:%s", address, port)
+	p := peer{
+		key,
+		address,
+		port,
+		conn,
+		make(chan []byte),
+	}
 	go p.read()
-	Peer[key] = &p
+	Peers[key] = &p
 	return &p
 }
 func (p *peer) read() {
+	defer p.close()
 	// delete peer in case of error
 	for {
 		_, m, err := p.conn.ReadMessage()
@@ -31,9 +41,17 @@ func (p *peer) read() {
 }
 
 func (p *peer) write() {
-	// delete peer in case of error
+	defer p.close()
 	for {
-		msg := <-p.inbox
+		msg, ok := <-p.inbox
+		if !ok {
+			break
+		}
 		p.conn.WriteMessage(websocket.TextMessage, msg)
 	}
+}
+
+func (p *peer) close() {
+	p.conn.Close()
+	delete(Peers, p.key)
 }
