@@ -33,6 +33,7 @@ func initPeer(conn *websocket.Conn, address, port string) *peer {
 		make(chan []byte),
 	}
 	go p.read()
+	go p.write()
 	Peers.v[key] = &p
 	return &p
 }
@@ -45,7 +46,7 @@ func (p *peer) read() {
 		if err != nil {
 			break
 		}
-		fmt.Printf("%s", m.Kind)
+		fmt.Println(m.Kind)
 	}
 }
 
