@@ -3,9 +3,17 @@ package p2p
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
+	"sync"
 )
 
-var Peers = make(map[string]*peer)
+type peers struct {
+	v map[string]*peer
+	m sync.Mutex
+}
+
+var Peers peers = peers{
+	v: make(map[string]*peer),
+}
 
 type peer struct {
 	key     string
@@ -25,7 +33,7 @@ func initPeer(conn *websocket.Conn, address, port string) *peer {
 		make(chan []byte),
 	}
 	go p.read()
-	Peers[key] = &p
+	Peers.v[key] = &p
 	return &p
 }
 func (p *peer) read() {
@@ -52,6 +60,18 @@ func (p *peer) write() {
 }
 
 func (p *peer) close() {
+	Peers.m.Lock()
+	defer Peers.m.Unlock()
 	p.conn.Close()
-	delete(Peers, p.key)
+	delete(Peers.v, p.key)
+}
+
+func AllPeers(p *peers) []string {
+	p.m.Lock()
+	defer p.m.Unlock()
+	var keys []string
+	for key := range p.v {
+		keys = append(keys, key)
+	}
+	return keys
 }

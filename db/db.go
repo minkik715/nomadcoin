@@ -1,8 +1,8 @@
 package db
 
 import (
-	"github.com/boltdb/bolt"
 	"github.com/rlaalsrl715/nomadcoin/utils"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
