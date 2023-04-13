@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/rlaalsrl715/nomadcoin/cli"
 	"github.com/rlaalsrl715/nomadcoin/db"
+	"github.com/rlaalsrl715/nomadcoin/rest"
 )
 
 func main() {
 	defer db.DB().Close()
 
-	cli.Start()
+	rest.Start(3000)
 }
