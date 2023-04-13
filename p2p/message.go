@@ -26,6 +26,11 @@ func sendNewestBlock(p *peer) {
 	p.inbox <- m
 }
 
+func sendNAllBlocks(p *peer) {
+	msg := utils.ToJsonBytes(blockchain.Blocks(blockchain.Blockchain()))
+	p.inbox <- msg
+}
+
 func makeMessage(kind MessageKind, payload interface{}) []byte {
 	m := Message{kind, utils.ToJsonBytes(payload)}
 	return utils.ToJsonBytes(m)
@@ -36,6 +41,24 @@ func handleMessage(msg *Message, p *peer) {
 	case MessageNewestBlock:
 		var payload blockchain.Block
 		utils.HandleErr(json.Unmarshal(msg.Payload, &payload))
+		ownHeight := blockchain.Blockchain().Height
+		if payload.Height > ownHeight {
+			requestAllBlocks(p)
+		} else if payload.Height != ownHeight {
+			sendNewestBlock(p)
+		}
+	case MessageAllBlocksRequest:
+		sendNAllBlocks(p)
+	case MessageAllBlocksResponse:
+		var payload []*blockchain.Block
+		utils.HandleErr(json.Unmarshal(msg.Payload, &payload))
 
 	}
+}
+
+func requestAllBlocks(p *peer) {
+	msg := Message{
+		Kind: MessageAllBlocksRequest,
+	}
+	p.inbox <- utils.ToJsonBytes(msg)
 }
