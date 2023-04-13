@@ -46,6 +46,15 @@ func SaveBlock(hash string, data []byte) {
 	utils.HandleErr(err)
 }
 
+func RemoveAllBlocks() {
+	DB().Update(func(tx *bolt.Tx) error {
+		utils.HandleErr(tx.DeleteBucket([]byte(blocksBucket)))
+		_, err := tx.CreateBucketIfNotExists([]byte(blocksBucket))
+		utils.HandleErr(err)
+		return nil
+	})
+}
+
 func SaveCheckPoint(data []byte) {
 	err := DB().Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(dataBucket))
