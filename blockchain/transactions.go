@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/rlaalsrl715/nomadcoin/utils"
 	"github.com/rlaalsrl715/nomadcoin/wallet"
+	"sync"
 	"time"
 )
 
@@ -12,7 +13,8 @@ const (
 )
 
 type mempool struct {
-	Txs []*Tx
+	Txs map[string]*Tx
+	M   sync.Mutex
 }
 
 var Mempool *mempool = &mempool{}
@@ -117,20 +119,23 @@ func validate(tx *Tx) bool {
 	return valid
 }
 
-func (m *mempool) AddTx(to string, amount int) error {
+func (m *mempool) AddTx(to string, amount int) (*Tx, error) {
 	tx, err := makeTx(wallet.Wallet().Address, to, amount)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	m.Txs = append(m.Txs, tx)
-	return nil
+	m.Txs[tx.Id] = tx
+	return tx, nil
 }
 
 func (m *mempool) txToConfirm() []*Tx {
 	coinbase := makeCoinBaseTx(wallet.Wallet().Address)
-	txs := m.Txs
-	txs = append(txs, coinbase)
-	m.Txs = nil
+	var txs []*Tx
+	m.Txs[coinbase.Id] = coinbase
+	for _, v := range m.Txs {
+		txs = append(txs, v)
+	}
+	m.Txs = make(map[string]*Tx)
 	return txs
 }
 
@@ -162,4 +167,13 @@ func FindTx(txId string, b *blockchain) *Tx {
 		}
 	}
 	return nil
+}
+
+func clearMempoolByPeerBlock(confirmTx []*Tx) {
+	for _, tx := range confirmTx {
+		_, ok := Mempool.Txs[tx.Id]
+		if ok {
+			delete(Mempool.Txs, tx.Id)
+		}
+	}
 }

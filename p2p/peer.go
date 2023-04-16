@@ -26,11 +26,11 @@ type peer struct {
 func initPeer(conn *websocket.Conn, address, port string) *peer {
 	key := fmt.Sprintf("%s:%s", address, port)
 	p := peer{
-		key,
-		address,
-		port,
-		conn,
-		make(chan []byte),
+		key:     key,
+		address: address,
+		port:    port,
+		conn:    conn,
+		inbox:   make(chan []byte),
 	}
 	go p.read()
 	go p.write()

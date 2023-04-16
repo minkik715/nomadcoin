@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/rlaalsrl715/nomadcoin/blockchain"
 	"github.com/rlaalsrl715/nomadcoin/utils"
+	"strings"
 )
 
 type MessageKind int
@@ -13,6 +14,8 @@ const (
 	MessageAllBlocksRequest
 	MessageAllBlocksResponse
 	MessageNewBlockNotify
+	MessageNewTxNotify
+	MessageNewPeerNotify
 )
 
 type Message struct {
@@ -58,6 +61,11 @@ func handleMessage(msg *Message, p *peer) {
 		var payload *blockchain.Block
 		utils.HandleErr(json.Unmarshal(msg.Payload, &payload))
 		blockchain.AddPeerBlock(payload)
+	case MessageNewPeerNotify:
+		var payload string
+		utils.HandleErr(json.Unmarshal(msg.Payload, &payload))
+		payloadSplit := strings.Split(payload, ":")
+		AddPeer(payloadSplit[0], payloadSplit[1], payloadSplit[2], false)
 	}
 }
 
@@ -68,6 +76,6 @@ func requestAllBlocks(p *peer) {
 	p.inbox <- utils.ToJsonBytes(msg)
 }
 
-func notifyBlock(b *blockchain.Block, p *peer) {
-	p.inbox <- makeMessage(MessageNewBlockNotify, b)
+func notify(b interface{}, p *peer, kind MessageKind) {
+	p.inbox <- makeMessage(kind, b)
 }

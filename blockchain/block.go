@@ -76,4 +76,5 @@ func AddPeerBlock(block *Block) {
 	b.Height = block.Height
 	persistBlockchain(b)
 	block.persist()
+	clearMempoolByPeerBlock(block.Transactions)
 }

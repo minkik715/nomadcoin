@@ -23,17 +23,31 @@ func Upgrade(rw http.ResponseWriter, r *http.Request) {
 	initPeer(conn, ip, openPort)
 }
 
-func AddPeer(address, port, openPort string) {
-	conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://%s:%s/ws?openPort=%s", address, port, openPort[1:]), nil)
+func AddPeer(address, port, openPort string, broadcast bool) {
+	conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://%s:%s/ws?openPort=%s", address, port, openPort), nil)
 	utils.HandleErr(err)
 	peer := initPeer(conn, address, port)
+	Peers.m.Lock()
+	defer Peers.m.Unlock()
+	if broadcast {
+		payload := fmt.Sprintf("%s:%s", peer.key, openPort)
+		BroadcastToPeers(payload, MessageNewPeerNotify, peer)
+	}
 	sendNewestBlock(peer)
 }
 
-func BroadcastNewBlock(b *blockchain.Block) {
-	Peers.m.Lock()
-	defer Peers.m.Unlock()
+func BroadcastToPeers(payload interface{}, kind MessageKind, excludePeer *peer) {
+	switch kind {
+	case MessageNewBlockNotify:
+		Peers.m.Lock()
+		defer Peers.m.Unlock()
+	case MessageNewTxNotify:
+		blockchain.Mempool.M.Lock()
+		defer blockchain.Mempool.M.Unlock()
+	}
 	for _, v := range Peers.v {
-		notifyBlock(b, v)
+		if v.key != excludePeer.key {
+			notify(payload, v, kind)
+		}
 	}
 }

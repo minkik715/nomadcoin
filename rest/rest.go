@@ -96,7 +96,7 @@ func blocks(rw http.ResponseWriter, r *http.Request) {
 	case "POST":
 		block := blockchain.Blockchain().AddBlock()
 		rw.WriteHeader(http.StatusCreated)
-		p2p.BroadcastNewBlock(block)
+		p2p.BroadcastToPeers(block, p2p.MessageNewBlockNotify, nil)
 	}
 }
 
@@ -140,11 +140,12 @@ func myWallet(rw http.ResponseWriter, r *http.Request) {
 func transactions(rw http.ResponseWriter, r *http.Request) {
 	var payload addTxPayload
 	utils.HandleErr(json.NewDecoder(r.Body).Decode(&payload))
-	err := blockchain.Mempool.AddTx(payload.To, payload.Amount)
+	tx, err := blockchain.Mempool.AddTx(payload.To, payload.Amount)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(rw).Encode(errorResponse{err.Error()})
 	} else {
+		p2p.BroadcastToPeers(tx, p2p.MessageNewTxNotify, nil)
 		rw.WriteHeader(http.StatusCreated)
 	}
 }
@@ -159,7 +160,7 @@ func peers(rw http.ResponseWriter, r *http.Request) {
 		{
 			var payload AddPeerPayload
 			json.NewDecoder(r.Body).Decode(&payload)
-			p2p.AddPeer(payload.Address, payload.Port, port)
+			p2p.AddPeer(payload.Address, payload.Port, port[1:], true)
 			rw.WriteHeader(http.StatusOK)
 		}
 	}
