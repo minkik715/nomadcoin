@@ -1,8 +1,10 @@
 package blockchain
 
 import (
+	"encoding/json"
 	"github.com/rlaalsrl715/nomadcoin/db"
 	"github.com/rlaalsrl715/nomadcoin/utils"
+	"net/http"
 	"sync"
 )
 
@@ -10,6 +12,7 @@ type blockchain struct {
 	NewestHash        string `json:"newestHash"`
 	Height            int    `json:"height"`
 	CurrentDifficulty int    `json:"currentDifficulty"`
+	m                 sync.Mutex
 }
 
 const (
@@ -26,12 +29,15 @@ func (b *blockchain) restore(data []byte) {
 	utils.FromBytes(b, data)
 }
 
-func (b *blockchain) AddBlock() {
+func (b *blockchain) AddBlock() *Block {
+	b.m.Lock()
+	defer b.m.Unlock()
 	block := createBLock(b.NewestHash, b.Height+1, Difficulty(b))
 	b.NewestHash = block.Hash
 	b.Height = block.Height
 	b.CurrentDifficulty = Difficulty(b)
 	persistBlockchain(b)
+	return block
 }
 
 func persistBlockchain(b *blockchain) {
@@ -124,13 +130,14 @@ func Blockchain() *blockchain {
 			} else {
 				b.restore(checkPoint)
 			}
-
 		},
 	)
 	return b
 }
 
 func (b *blockchain) Replace(blocks []*Block) {
+	b.m.Lock()
+	defer b.m.Unlock()
 	b.CurrentDifficulty = blocks[0].Difficulty
 	b.Height = len(blocks)
 	b.NewestHash = blocks[0].Hash
@@ -139,4 +146,11 @@ func (b *blockchain) Replace(blocks []*Block) {
 	for _, block := range blocks {
 		block.persist()
 	}
+}
+
+func Status(b *blockchain, rw http.ResponseWriter) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	encoder := json.NewEncoder(rw)
+	encoder.Encode(b)
 }

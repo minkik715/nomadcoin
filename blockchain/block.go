@@ -67,3 +67,13 @@ func createBLock(prevHash string, height int, diff int) *Block {
 	block.persist()
 	return &block
 }
+
+func AddPeerBlock(block *Block) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	b.NewestHash = block.Hash
+	b.CurrentDifficulty = block.Difficulty
+	b.Height = block.Height
+	persistBlockchain(b)
+	block.persist()
+}

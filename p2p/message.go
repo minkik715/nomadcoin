@@ -12,6 +12,7 @@ const (
 	MessageNewestBlock MessageKind = iota
 	MessageAllBlocksRequest
 	MessageAllBlocksResponse
+	MessageNewBlockNotify
 )
 
 type Message struct {
@@ -44,7 +45,7 @@ func handleMessage(msg *Message, p *peer) {
 		ownHeight := blockchain.Blockchain().Height
 		if payload.Height > ownHeight {
 			requestAllBlocks(p)
-		} else if payload.Height != ownHeight {
+		} else if payload.Height <= ownHeight {
 			sendNewestBlock(p)
 		}
 	case MessageAllBlocksRequest:
@@ -52,7 +53,11 @@ func handleMessage(msg *Message, p *peer) {
 	case MessageAllBlocksResponse:
 		var payload []*blockchain.Block
 		utils.HandleErr(json.Unmarshal(msg.Payload, &payload))
-
+		blockchain.Blockchain().Replace(payload)
+	case MessageNewBlockNotify:
+		var payload *blockchain.Block
+		utils.HandleErr(json.Unmarshal(msg.Payload, &payload))
+		blockchain.AddPeerBlock(payload)
 	}
 }
 
@@ -61,4 +66,8 @@ func requestAllBlocks(p *peer) {
 		Kind: MessageAllBlocksRequest,
 	}
 	p.inbox <- utils.ToJsonBytes(msg)
+}
+
+func notifyBlock(b *blockchain.Block, p *peer) {
+	p.inbox <- makeMessage(MessageNewBlockNotify, b)
 }

@@ -3,6 +3,7 @@ package p2p
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/rlaalsrl715/nomadcoin/blockchain"
 	"github.com/rlaalsrl715/nomadcoin/utils"
 	"net/http"
 )
@@ -27,4 +28,12 @@ func AddPeer(address, port, openPort string) {
 	utils.HandleErr(err)
 	peer := initPeer(conn, address, port)
 	sendNewestBlock(peer)
+}
+
+func BroadcastNewBlock(b *blockchain.Block) {
+	Peers.m.Lock()
+	defer Peers.m.Unlock()
+	for _, v := range Peers.v {
+		notifyBlock(b, v)
+	}
 }
